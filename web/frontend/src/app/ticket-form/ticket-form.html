@@ -1,0 +1,15 @@
+<h2>{{ isEdit ? 'Editar Ticket' : 'Nuevo Ticket' }}</h2>
+<form (ngSubmit)="guardar()">
+  <label>
+    Título:
+    <input [(ngModel)]="ticket.title" name="title" required />
+  </label>
+  <br />
+  <label>
+    Descripción:
+    <textarea [(ngModel)]="ticket.description" name="description" required></textarea>
+  </label>
+  <br />
+  <button type="submit">Guardar</button>
+  <button type="button" (click)="router.navigate(['/'])">Cancelar</button>
+</form>

@@ -1,0 +1,1 @@
+SSR (Server Side Rendering) ha sido desactivado y los archivos relacionados han sido eliminados. Usa solo `npm start` para correr la app como SPA.
