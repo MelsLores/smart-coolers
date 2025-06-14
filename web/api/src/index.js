@@ -1,13 +1,25 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import dotenv from 'dotenv';
+import { body, validationResult } from 'express-validator';
+
+// Cargar variables de entorno
+dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// CORS seguro: solo permitir frontend local (ajusta para producción)
+app.use(cors({ origin: ['http://localhost:4200'] }));
 app.use(express.json());
 
 // MongoDB connection
-mongoose.connect('mongodb+srv://melanyriveralores:O3RMArmlfT105SDW@cluster0.tz1hgep.mongodb.net/smart-coolers?retryWrites=true&w=majority', {
+const mongoUri = process.env.MONGODB_URI;
+if (!mongoUri) {
+  console.error('Falta la variable de entorno MONGODB_URI');
+  process.exit(1);
+}
+mongoose.connect(mongoUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
@@ -31,21 +43,38 @@ const Ticket = mongoose.model('Ticket', ticketSchema);
 
 // API routes
 app.get('/tickets', async (req, res) => {
-  const tickets = await Ticket.find();
+  const tickets = await Ticket.find().select('-__v'); // No exponer __v
   res.json(tickets);
 });
 
-app.post('/tickets', async (req, res) => {
-  const ticket = new Ticket(req.body);
-  await ticket.save();
-  res.status(201).json(ticket);
-});
+app.post('/tickets',
+  // Validación y sanitización
+  body('title').isString().trim().notEmpty().escape(),
+  body('description').isString().trim().notEmpty().escape(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const ticket = new Ticket(req.body);
+    await ticket.save();
+    res.status(201).json(ticket);
+  }
+);
 
-app.put('/tickets/:id', async (req, res) => {
-  const ticket = await Ticket.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.json(ticket);
-});
+app.put('/tickets/:id',
+  body('title').optional().isString().trim().notEmpty().escape(),
+  body('description').optional().isString().trim().notEmpty().escape(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const ticket = await Ticket.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(ticket);
+  }
+);
 
-app.listen(3000, () => {
-  console.log('API server running on http://localhost:3000');
+app.listen(process.env.PORT || 3000, () => {
+  console.log('API server running on http://localhost:' + (process.env.PORT || 3000));
 });
