@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { body, validationResult } from 'express-validator';
+import { askGemini } from './gemini.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -19,13 +20,17 @@ if (!mongoUri) {
   console.error('Falta la variable de entorno MONGODB_URI');
   process.exit(1);
 }
-mongoose.connect(mongoUri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+// Conexión sin opciones obsoletas
+mongoose.connect(mongoUri).catch(err => {
+  console.error('Error al conectar a MongoDB:', err.message);
+  process.exit(1);
 });
 
 const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
+db.on('error', err => {
+  console.error('MongoDB connection error:', err.message);
+  process.exit(1);
+});
 db.once('open', () => {
   console.log('Connected to MongoDB');
 });
@@ -77,4 +82,18 @@ app.put('/tickets/:id',
 
 app.listen(process.env.PORT || 3000, () => {
   console.log('API server running on http://localhost:' + (process.env.PORT || 3000));
+});
+
+// Endpoint para interactuar con Gemini
+app.post('/gemini', async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) {
+    return res.status(400).json({ error: 'Prompt requerido' });
+  }
+  try {
+    const geminiResponse = await askGemini(prompt);
+    res.json({ response: geminiResponse });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al consultar Gemini', details: error.message });
+  }
 });
