@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 
-const uri = 'mongodb+srv://melanyriveralores:O3RMArmlfT105SDW@cluster0.tz1hgep.mongodb.net/smart-coolers?retryWrites=true&w=majority';
+dotenv.config();
+
+const uri = process.env.MONGODB_URI;
 
 mongoose.connect(uri, {
   useNewUrlParser: true,
